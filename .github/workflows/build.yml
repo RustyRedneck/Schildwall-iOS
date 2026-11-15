@@ -1,0 +1,43 @@
+name: iPhone-App bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: XcodeGen installieren
+        run: brew install xcodegen
+
+      - name: Xcode-Projekt erzeugen
+        run: xcodegen generate
+
+      - name: App bauen (unsigniert)
+        run: |
+          xcodebuild \
+            -project Schildwall.xcodeproj \
+            -scheme Schildwall \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: IPA packen
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Schildwall.app Payload/
+          zip -qry Schildwall.ipa Payload
+
+      - name: IPA zum Herunterladen bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Schildwall-iPhone
+          path: Schildwall.ipa
